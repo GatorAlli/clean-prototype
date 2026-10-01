@@ -6,11 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { createBooking } from "./actions";
-import { ITEM_SERVICES, itemServicesLabel, toggleItemService, type ItemService } from "@/lib/booking-services";
-import { DELIVERY_CHARGE } from "@/lib/order-pricing";
-import BookingPaymentForm from "@/app/components/BookingPaymentForm";
-import type { BookingPayment } from "@/lib/booking-payment";
-import OrderCostBreakdown from "@/app/components/OrderCostBreakdown";
 
 export default function PageBody({
   laundryId,
@@ -19,10 +14,6 @@ export default function PageBody({
   prices,
   about,
   images,
-  initialName,
-  initialPhone,
-  paymentNumber,
-  paymentMethod,
 }: {
   laundryId: number;
   name: string;
@@ -30,38 +21,30 @@ export default function PageBody({
   prices: Pricing[];
   about: string;
   images: string[];
-  initialName: string; initialPhone: string; paymentNumber: string; paymentMethod: string;
 }) {
   const router = useRouter(); // This enables the working Back button
 
   // State to hold the quantities of each apparel type
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [services, setServices] = useState<Record<string, ItemService[]>>(() =>
-    Object.fromEntries(prices.map(item => [item.apparelType, ["washing"]])),
-  );
 
-  const [paymentOpen, setPaymentOpen] = useState(false);
   const [bookingPending, setBookingPending] = useState(false);
   const [bookingMessage, setBookingMessage] = useState("");
   const [signInRequired, setSignInRequired] = useState(false);
   const submission = useRef<{ selection: string; requestId: string } | null>(null);
   const submitting = useRef(false);
 
-  async function handleSubmitPayment(payment: BookingPayment) {
+  async function handleContinue() {
     if (submitting.current || totalPieces === 0) return;
     submitting.current = true;
     setBookingPending(true);
     setBookingMessage("");
     setSignInRequired(false);
-    const selectedServices = Object.fromEntries(Object.entries(quantities)
-      .filter(([, qty]) => qty > 0).map(([apparelType]) => [apparelType, services[apparelType]]));
-    const selection = JSON.stringify([payment, Object.entries(quantities).filter(([, qty]) => qty > 0)
-      .sort().map(([apparelType, qty]) => [apparelType, qty, selectedServices[apparelType]])]);
+    const selection = JSON.stringify(Object.entries(quantities).filter(([, qty]) => qty > 0).sort());
     if (submission.current?.selection !== selection) {
       submission.current = { selection, requestId: crypto.randomUUID() };
     }
     try {
-      const result = await createBooking({ laundryId, quantities, services: selectedServices, payment, requestId: submission.current.requestId });
+      const result = await createBooking({ laundryId, quantities, requestId: submission.current.requestId });
       if (!result.ok) {
         setBookingMessage(result.message);
         setSignInRequired("signInRequired" in result && result.signInRequired === true);
@@ -135,11 +118,6 @@ export default function PageBody({
         </div>
       </header>
 
-      {paymentOpen ? <main className="px-6 py-10">
-        <BookingPaymentForm laundryName={name} subtotal={totalPrice} initialName={initialName} initialPhone={initialPhone}
-          paymentNumber={paymentNumber} paymentMethod={paymentMethod} onSubmit={handleSubmitPayment}
-          onCancel={() => { setPaymentOpen(false); setBookingMessage(""); }} message={bookingMessage} signInRequired={signInRequired} />
-      </main> : <>
       {/* 2. MAIN LAYOUT: Left Content & Right Sticky Sidebar */}
       <main className="w-full max-w-7xl mx-auto px-6 md:px-12 pt-10 flex flex-col lg:flex-row gap-10 items-start">
         
@@ -177,7 +155,6 @@ export default function PageBody({
           <div className="mb-10">
             <div className="mb-5">
               <h2 className="text-2xl font-bold text-black font-bricolage">Services & Pricing</h2>
-              <p className="mt-2 text-sm text-gray-500">Choose washing, ironing, or both for each clothing item. Keep at least one service selected.</p>
             </div>
             
             {prices && prices.length > 0 ? (
@@ -185,68 +162,47 @@ export default function PageBody({
                 {prices.map((e, id) => {
                   const qty = quantities[e.apparelType] || 0;
                   const isSelected = qty > 0;
-                  const itemServices = services[e.apparelType] ?? ["washing"];
 
                   return (
                     <div 
                       key={id} 
-                      className={`bg-white border p-5 rounded-xl transition-colors ${
+                      className={`bg-white border p-5 rounded-xl transition-colors flex justify-between items-center ${
                         isSelected ? 'border-[#ff206e] shadow-sm' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex justify-between items-center gap-3">
-                        <div>
-                          <h3 className="text-black font-bold text-lg font-bricolage">{e.apparelType}</h3>
-                          <p className="text-gray-500 text-sm mt-1" style={{ fontFamily: "'Source Sans 3', sans-serif" }}>
-                            <span className="font-semibold text-black" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>৳{e.unitPrice}</span> per piece
-                          </p>
-                        </div>
-                      
-                        {/* Counter Control */}
-                        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-full p-1">
-                          <button
-                            aria-label={`Remove one ${e.apparelType}`}
-                            onClick={() => decrement(e.apparelType)}
-                            disabled={!isSelected || bookingPending}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all duration-200 ${
-                              isSelected
-                                ? 'bg-[#111111] hover:bg-black ring-2 ring-[#ff206e]'
-                                : 'bg-gray-300 cursor-not-allowed'
-                            }`}
-                          >
-                            -
-                          </button>
-                        
-                          <span className="font-bold text-black w-5 text-center text-lg" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
-                            {qty}
-                          </span>
-                        
-                          <button
-                            disabled={bookingPending || qty >= 1000}
-                            aria-label={`Add one ${e.apparelType}`}
-                            onClick={() => increment(e.apparelType)}
-                            className="w-8 h-8 rounded-full bg-[#111111] hover:bg-black text-white flex items-center justify-center transition-all duration-200"
-                          >
-                            +
-                          </button>
-                        </div>
+                      <div>
+                        <h3 className="text-black font-bold text-lg font-bricolage">{e.apparelType}</h3>
+                        <p className="text-gray-500 text-sm mt-1" style={{ fontFamily: "'Source Sans 3', sans-serif" }}>
+                          <span className="font-semibold text-black" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>৳{e.unitPrice}</span> per piece
+                        </p>
                       </div>
-                      <fieldset disabled={bookingPending} className="mt-4 border-t border-gray-100 pt-3">
-                        <legend className="sr-only">Services for {e.apparelType}</legend>
-                        <div className="flex flex-wrap gap-4">
-                          {ITEM_SERVICES.map(option => <label key={option} className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-                            <input type="checkbox" name={`services-${id}`} value={option}
-                              aria-label={`${option === "washing" ? "Washing" : "Ironing"} for ${e.apparelType}`}
-                              checked={itemServices.includes(option)}
-                              onChange={() => {
-                                setServices(current => ({ ...current, [e.apparelType]: toggleItemService(current[e.apparelType] ?? ["washing"], option) }));
-                                setBookingMessage("");
-                              }}
-                              className="h-5 w-5 appearance-none rounded-full border-2 border-gray-300 checked:border-[#ff206e] checked:bg-[#ff206e] checked:shadow-[inset_0_0_0_3px_white] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff206e]" />
-                            {option === "washing" ? "Washing" : "Ironing"}
-                          </label>)}
-                        </div>
-                      </fieldset>
+                      
+                      {/* Counter Control */}
+                      <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-full p-1">
+                        <button
+                          onClick={() => decrement(e.apparelType)}
+                          disabled={!isSelected || bookingPending}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all duration-200 ${
+                            isSelected 
+                              ? 'bg-[#111111] hover:bg-black ring-2 ring-[#ff206e]' 
+                              : 'bg-gray-300 cursor-not-allowed'
+                          }`}
+                        >
+                          -
+                        </button>
+                        
+                        <span className="font-bold text-black w-5 text-center text-lg" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                          {qty}
+                        </span>
+                        
+                        <button
+                          disabled={bookingPending}
+                          onClick={() => increment(e.apparelType)}
+                          className="w-8 h-8 rounded-full bg-[#111111] hover:bg-black text-white flex items-center justify-center transition-all duration-200"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -304,9 +260,7 @@ export default function PageBody({
                   if (qty === 0) return null;
                   return (
                     <div key={item.apparelType} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">{item.apparelType}
-                        <span className="block text-xs text-[#ff206e]">{itemServicesLabel(services[item.apparelType])}</span>
-                      </span>
+                      <span className="text-gray-500">{item.apparelType}</span>
                       <span className="text-black font-semibold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
                         {qty} × ৳{item.unitPrice}
                       </span>
@@ -316,17 +270,21 @@ export default function PageBody({
               </div>
             )}
 
-            <div className="mb-6 space-y-3">
-              <p className="text-sm text-gray-500">{totalPieces} pieces</p>
-              <OrderCostBreakdown laundrySubtotal={totalPrice} deliveryCharge={DELIVERY_CHARGE}
-                totalAmount={totalPrice + DELIVERY_CHARGE} />
-              <p className="text-xs text-gray-500">A fixed ৳100 delivery charge applies to each order.</p>
+            {/* Total Section */}
+            <div className="flex justify-between items-end mb-6">
+              <span className="text-gray-500 text-sm" style={{ fontFamily: "'Source Sans 3', sans-serif" }}>
+                <span className="font-semibold text-black text-base" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{totalPieces}</span> pieces
+              </span>
+              <span className="text-4xl font-extrabold tracking-tight text-black font-bricolage flex items-center gap-1">
+                <span className="text-2xl text-black">৳</span>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{totalPrice.toLocaleString()}</span>
+              </span>
             </div>
 
             {/* Continue Button */}
             <button 
               type="button"
-              onClick={() => { setBookingMessage(""); setPaymentOpen(true); }}
+              onClick={handleContinue}
               disabled={totalPieces === 0 || bookingPending}
               className={`w-full py-4 rounded-xl font-bold text-center transition-colors text-lg ${
                 totalPieces > 0 
@@ -343,7 +301,6 @@ export default function PageBody({
         </div>
 
       </main>
-      </>}
     </div>
   );
 }

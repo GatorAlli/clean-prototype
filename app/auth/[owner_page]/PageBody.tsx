@@ -7,11 +7,10 @@ import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { updateStore } from "./actions";
-import ProfileContactForm from "@/app/components/ProfileContactForm";
-import type { ContactDetails } from "@/lib/contact-details";
+import Link from "next/link";
 import CleanNavbar from "@/app/components/CleanNavbar";
 import BookingList from "@/app/components/BookingList";
-import type { Booking, OwnerBooking } from "@/lib/drizzle/schema";
+import type { Booking } from "@/lib/drizzle/schema";
 
 type storeData = {
   id: number;
@@ -25,7 +24,7 @@ type storeData = {
   }[];
 };
 
-export default function PageBody({ contact, store, isLoggedIn, bookings, customerBookings }: { contact: ContactDetails; store: storeData; isLoggedIn: boolean; bookings: OwnerBooking[]; customerBookings: Booking[] }) {
+export default function PageBody({ store, isLoggedIn, bookings, customerBookings }: { store: storeData; isLoggedIn: boolean; bookings: Booking[]; customerBookings: Booking[] }) {
   const router = useRouter();
 
   const [name, setName] = useState(store.name);
@@ -228,7 +227,6 @@ export default function PageBody({ contact, store, isLoggedIn, bookings, custome
             </div>
           </div>
         </div>
-        <div className="mt-10"><ProfileContactForm contact={contact} /></div>
         <section className="mt-10 space-y-4" id="bookings">
           <h2 className="text-2xl font-bold">Customer bookings</h2>
           <BookingList bookings={bookings} showCustomer canManage />

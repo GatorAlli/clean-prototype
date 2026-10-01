@@ -5,22 +5,15 @@ import { bookings, laundries, type BookingItem } from "@/lib/drizzle/schema";
 import { generateServerClient } from "@/lib/supabase/server";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { buildBookingItems, type ItemService } from "@/lib/booking-services";
-import { calculateOrderTotal } from "@/lib/order-pricing";
-import { validateBookingPayment, type BookingPayment } from "@/lib/booking-payment";
 
 type BookingInput = {
   laundryId: number;
   quantities: Record<string, number>;
   requestId: string;
-  services: Record<string, ItemService[]>;
-  payment: BookingPayment;
 };
 
 export async function createBooking(input: BookingInput) {
   try {
-    const payment = validateBookingPayment(input?.payment);
-    if (!payment) return { ok: false as const, message: "Enter your name, a valid phone number and a transaction ID before booking." };
     const supabase = await generateServerClient();
     const {
       data: { user },
@@ -43,10 +36,7 @@ export async function createBooking(input: BookingInput) {
       ) ||
       !input.quantities ||
       typeof input.quantities !== "object" ||
-      Array.isArray(input.quantities) ||
-      !input.services ||
-      typeof input.services !== "object" ||
-      Array.isArray(input.services)
+      Array.isArray(input.quantities)
     ) {
       return { ok: false as const, message: "Invalid booking details." };
     }
@@ -89,38 +79,42 @@ export async function createBooking(input: BookingInput) {
           message: "Check your selected items and quantities.",
         };
       }
-      let items: BookingItem[];
-      try {
-        items = buildBookingItems(store.pricing, input.quantities, input.services);
-      } catch {
-        return { ok: false as const, message: "Choose washing, ironing or both for every selected item." };
-      }
-      let pricing;
-      try {
-        if (!items.length) throw new Error("No items selected.");
-        pricing = calculateOrderTotal(items);
-      } catch {
+      const items: BookingItem[] = entries
+        .filter(([, quantity]) => quantity > 0)
+        .map(([apparelType, quantity]) => ({
+          apparelType,
+          quantity,
+          unitPrice: store.pricing.find((p) => p.apparelType === apparelType)!
+            .unitPrice,
+        }));
+      const totalAmount = items.reduce(
+        (sum, item) => sum + item.quantity * item.unitPrice,
+        0,
+      );
+      if (
+        !items.length ||
+        items.some(
+          (item) => !Number.isSafeInteger(item.unitPrice) || item.unitPrice < 0,
+        ) ||
+        !Number.isSafeInteger(totalAmount) ||
+        totalAmount > 2147483647
+      ) {
         return {
           ok: false as const,
           message: "Select items with valid whole Taka prices.",
         };
       }
-      const { totalAmount, deliveryCharge } = pricing;
       const [inserted] = await db
         .insert(bookings)
         .values({
           laundryId: store.id,
           laundryName: store.name,
           customerId: user.id,
-          customerName: payment.customerName,
+          customerName: String(user.user_metadata.full_name ?? ""),
           customerEmail: user.email,
-          bookingPhone: payment.phone,
-          transactionId: payment.transactionId,
           items,
           totalAmount,
-          deliveryCharge,
           requestId: input.requestId,
-          statusHistory: [{ status: "pending", at: new Date().toISOString(), actorId: user.id }],
         })
         .onConflictDoNothing({ target: bookings.requestId })
         .returning({ id: bookings.id });
@@ -133,10 +127,6 @@ export async function createBooking(input: BookingInput) {
     revalidatePath(`/auth/${input.laundryId}`);
     return { ok: true as const, bookingId: booking.id };
   } catch (error) {
-    const cause = (error as { cause?: { code?: string; constraint_name?: string } }).cause ?? error as { code?: string; constraint_name?: string };
-    if (cause.code === "23505" && ["bookings_transactionId_unique", "bookings_transactionId_key"].includes(cause.constraint_name ?? "")) {
-      return { ok: false as const, message: "This transaction ID has already been used for an order." };
-    }
     console.error("Booking creation failed:", error);
     return {
       ok: false as const,

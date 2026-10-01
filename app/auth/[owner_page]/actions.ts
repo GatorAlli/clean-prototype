@@ -1,10 +1,8 @@
 "use server";
 
-import { laundries } from "@/lib/drizzle/schema";
+import { bookings, laundries } from "@/lib/drizzle/schema";
 import { generateServerClient } from "@/lib/supabase/server";
-import { and, eq } from "drizzle-orm";
-import { advanceBooking } from "@/lib/drizzle/booking-status";
-import { canTransition, isBookingStatus, statusLabel, type BookingStatus } from "@/lib/order-lifecycle";
+import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { revalidatePath } from "next/cache";
 import postgres from "postgres";
@@ -97,11 +95,10 @@ export async function updateStore(changes: StoreChanges) {
 
 export async function updateBookingStatus(
   bookingId: number,
-  status: BookingStatus,
-  expectedStatus: BookingStatus,
+  status: "completed" | "cancelled",
 ) {
   if (!Number.isSafeInteger(bookingId) || bookingId <= 0 ||
-    !isBookingStatus(status) || !isBookingStatus(expectedStatus) || !canTransition(expectedStatus, status)) {
+    (status !== "completed" && status !== "cancelled")) {
     return { ok: false as const, message: "Invalid order update." };
   }
 
@@ -112,16 +109,22 @@ export async function updateBookingStatus(
       return { ok: false as const, message: "Please sign in again." };
     }
 
-    const updated = await advanceBooking(sharedDb, bookingId, user.email, user.id, expectedStatus, status);
+    // Check ownership and pending status in the same update to prevent races.
+    const [updated] = await sharedDb.update(bookings).set({ status }).where(and(
+      eq(bookings.id, bookingId),
+      eq(bookings.status, "pending"),
+      inArray(bookings.laundryId, sharedDb.select({ id: laundries.id }).from(laundries)
+        .where(eq(laundries.ownerEmail, user.email.toLowerCase()))),
+    )).returning({ laundryId: bookings.laundryId });
 
     if (!updated) {
-      return { ok: false as const, message: "Order changed or access denied. Refresh and try again." };
+      return { ok: false as const, message: "Order already processed or access denied." };
     }
 
     revalidatePath(`/auth/${updated.laundryId}`);
     revalidatePath("/auth");
     revalidatePath("/orders");
-    return { ok: true as const, message: `Order marked ${statusLabel(status).toLowerCase()}.` };
+    return { ok: true as const, message: status === "completed" ? "Order completed." : "Order cancelled." };
   } catch (error) {
     console.error("Order status update failed:", error);
     return { ok: false as const, message: "Could not update the order. Please retry." };

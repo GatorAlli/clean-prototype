@@ -1,11 +1,7 @@
-import type { ItemService } from "@/lib/booking-services";
-import type { BookingStatus, StatusEvent } from "@/lib/order-lifecycle";
-import { sql } from "drizzle-orm";
-import { DELIVERY_CHARGE } from "@/lib/order-pricing";
 import {
-  check,
   integer,
   pgTable,
+  primaryKey,
   jsonb,
   uuid,
   timestamp,
@@ -44,7 +40,6 @@ export type BookingItem = {
   apparelType: string;
   quantity: number;
   unitPrice: number; // Whole Taka
-  services?: ItemService[]; // Optional for bookings made before service selection.
 };
 
 export const bookings = pgTable.withRLS("bookings", {
@@ -57,24 +52,15 @@ export const bookings = pgTable.withRLS("bookings", {
   customerId: uuid().notNull(),
   customerName: text().notNull(),
   customerEmail: text().notNull(),
-  bookingPhone: varchar({ length: 20 }),
-  transactionId: varchar({ length: 100 }).unique(),
 
   laundryName: text().notNull(),
   items: jsonb().$type<BookingItem[]>().notNull(),
 
   totalAmount: integer().notNull(),
-  deliveryCharge: integer().notNull().default(DELIVERY_CHARGE),
-  status: text().$type<BookingStatus>().notNull().default("pending"),
-  statusHistory: jsonb().$type<StatusEvent[]>().notNull().default([]),
+  status: text().notNull().default("pending"),
 
   requestId: uuid().notNull().unique(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  check("bookings_status_check", sql`${table.status} in ('pending', 'accepted', 'collected', 'processing', 'ready', 'out_for_delivery', 'delivered', 'cancelled')`),
-  check("bookings_delivery_charge_check", sql`${table.deliveryCharge} = 100`),
-  check("bookings_transaction_id_check", sql`${table.transactionId} is null or ${table.transactionId} ~ '^[A-Z0-9_-]{1,100}$'`),
-]);
+});
 
 export type Booking = typeof bookings.$inferSelect;
-export type OwnerBooking = Booking & { customerLocation?: string | null; customerPhone?: string | null };

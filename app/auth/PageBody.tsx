@@ -8,8 +8,6 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import CleanNavbar from "../components/CleanNavbar";
 import BookingList from "../components/BookingList";
-import ProfileContactForm from "@/app/components/ProfileContactForm";
-import { formatContactAddress, validateContact, type ContactDetails } from "@/lib/contact-details";
 import type { Booking } from "@/lib/drizzle/schema";
 
 const styles = {
@@ -29,15 +27,15 @@ const styles = {
 } as const;
 
 export function AuthPageBody({
+  onSaveAuthPhone,
   isLoggedIn,
 }: {
+  onSaveAuthPhone: (phone: string) => Promise<{ error: string | null }>;
   isLoggedIn: boolean;
 }) {
   const [isLogin, changeIsLogin] = useState(false);
   const [email, changeEmail] = useState("");
   const [phone, changePhone] = useState("");
-  const [streetAddress, changeStreetAddress] = useState("");
-  const [locality, changeLocality] = useState("");
   const [password, changePassword] = useState("");
   const [status, changeStatus] = useState("");
   const [handle, changeHandle] = useState("");
@@ -45,18 +43,13 @@ export function AuthPageBody({
 
   async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const contact = validateContact(streetAddress, locality, phone);
-    if (!contact) { changeStatus("Enter your street address, locality and a valid phone number."); return; }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: handle,
-          auth_phone: contact.phone,
-          street_address: contact.streetAddress,
-          locality: contact.locality,
-          location: formatContactAddress(contact),
+          auth_phone: phone,
         },
       },
     });
@@ -65,14 +58,15 @@ export function AuthPageBody({
     } else if (!data.user) {
       changeStatus("Signup succeeded, but Supabase did not return a user.");
     } else {
-      changeStatus(data.session ? "Signed up successfully." : "Check your email to confirm your account.");
-      if (data.session) router.refresh();
+      const phoneResult = await onSaveAuthPhone(phone);
+      changeStatus(phoneResult.error ?? "Signed up and phone number saved.");
     }
+    console.log("Hello");
   }
 
   async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -216,22 +210,6 @@ export function AuthPageBody({
                 </div>
               </div>
 
-              <div className={`${styles.formGrid} mb-6`}>
-                <div>
-                  <Label htmlFor="signup-street-address" className={styles.fieldLabel}>Street Address <span className={styles.requiredMark}>*</span></Label>
-                  <textarea id="signup-street-address" autoComplete="street-address" required maxLength={500} value={streetAddress}
-                    onChange={event => changeStreetAddress(event.target.value)} placeholder="Building, floor, house and road number"
-                    className={`${styles.fieldInput} min-h-24 w-full`} />
-                </div>
-                <div>
-                  <Label htmlFor="signup-locality" className={styles.fieldLabel}>Locality <span className={styles.requiredMark}>*</span></Label>
-                  <Input id="signup-locality" autoComplete="address-level3" required maxLength={100} value={locality}
-                    onChange={event => changeLocality(event.target.value)} placeholder="e.g. Gulshan, Banani"
-                    className={styles.fieldInput} />
-                </div>
-                <p className="text-sm text-gray-500 md:col-span-2">All addresses are in Dhaka.</p>
-              </div>
-
               {/* Password */}
               <div className={`${styles.formGrid} mb-8 mt-6`}>
                 <div>
@@ -264,12 +242,10 @@ export function AuthPageBody({
 }
 
 export function ProfilePageBody({
-  contact,
   bookings,
   displayName,
   isLoggedIn,
 }: {
-  contact: ContactDetails;
   bookings: Booking[];
   displayName: string | undefined;
   isLoggedIn: boolean;
@@ -295,7 +271,6 @@ export function ProfilePageBody({
       >
         Sign Out
       </Button>
-      <ProfileContactForm contact={contact} />
       <section className="space-y-4" id="bookings">
         <h2 className="text-2xl font-bold">My bookings</h2>
         <BookingList bookings={bookings} />
