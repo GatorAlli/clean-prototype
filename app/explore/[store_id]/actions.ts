@@ -1,5 +1,6 @@
 "use server";
 
+import { getProfileAddress } from "@/lib/profile-address";
 import { db } from "@/lib/drizzle/db";
 import { bookings, laundries, type BookingItem } from "@/lib/drizzle/schema";
 import { generateServerClient } from "@/lib/supabase/server";
@@ -56,6 +57,8 @@ export async function createBooking(input: BookingInput) {
     };
     let booking = await findExisting();
     if (!booking) {
+      const address = getProfileAddress(user.user_metadata);
+      if (!address) return { ok: false as const, message: "Add your delivery address in your profile once before placing an order." };
       const [store] = await db
         .select()
         .from(laundries)
@@ -112,6 +115,8 @@ export async function createBooking(input: BookingInput) {
           customerId: user.id,
           customerName: String(user.user_metadata.full_name ?? ""),
           customerEmail: user.email,
+          customerAddress: address.address,
+          customerLocality: address.locality,
           items,
           totalAmount,
           requestId: input.requestId,

@@ -8,6 +8,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import CleanNavbar from "../components/CleanNavbar";
 import BookingList from "../components/BookingList";
+import ProfileAddressForm from "@/app/components/ProfileAddressForm";
+import { validateProfileAddress, type ProfileAddress } from "@/lib/profile-address";
 import type { Booking } from "@/lib/drizzle/schema";
 
 const styles = {
@@ -36,6 +38,8 @@ export function AuthPageBody({
   const [isLogin, changeIsLogin] = useState(false);
   const [email, changeEmail] = useState("");
   const [phone, changePhone] = useState("");
+  const [address, changeAddress] = useState("");
+  const [locality, changeLocality] = useState("");
   const [password, changePassword] = useState("");
   const [status, changeStatus] = useState("");
   const [handle, changeHandle] = useState("");
@@ -43,6 +47,11 @@ export function AuthPageBody({
 
   async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const profileAddress = validateProfileAddress(address, locality);
+    if (!profileAddress) {
+      changeStatus("Enter your address (up to 500 characters) and locality (up to 100 characters).");
+      return;
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -50,6 +59,8 @@ export function AuthPageBody({
         data: {
           full_name: handle,
           auth_phone: phone,
+          street_address: profileAddress.address,
+          locality: profileAddress.locality,
         },
       },
     });
@@ -181,29 +192,56 @@ export function AuthPageBody({
                 </div>
               </div>
               {/* Email and contact number */}
-              <div className={`${styles.formGrid} mb-6 mt-6`}>
-                <div>
-                  <Label className={styles.fieldLabel}>
-                    Email <span className={styles.requiredMark}>*</span>
-                  </Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => changeEmail(e.target.value)}
-                    className={styles.fieldInput}
-                  />
-                </div>
+              <div>
+                <Label className={styles.fieldLabel}>
+                  Email <span className={styles.requiredMark}>*</span>
+                </Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => changeEmail(e.target.value)}
+                  className={styles.fieldInput}
+                />
+              </div>
 
+              <div className="md:col-start-1">
+                <Label className={styles.fieldLabel}>
+                  Contact Number <span className={styles.requiredMark}>*</span>
+                </Label>
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => changePhone(e.target.value)}
+                  placeholder="01XXXXXXXXX"
+                  className={`${styles.fieldInput} ${styles.fieldInputPlaceholder}`}
+                  required
+                />
+              </div>
+              <div className="flex justify-between">
                 <div className="md:col-start-1">
                   <Label className={styles.fieldLabel}>
-                    Contact Number{" "}
-                    <span className={styles.requiredMark}>*</span>
+                    Address <span className={styles.requiredMark}>*</span>
+                  </Label>
+                  <textarea
+                    maxLength={500}
+                    autoComplete="street-address"
+                    value={address}
+                    onChange={(e) => changeAddress(e.target.value)}
+                    placeholder="Your address"
+                    className={`${styles.fieldInput} ${styles.fieldInputPlaceholder}`}
+                    required
+                  />
+                </div>
+                <div className="md:col-start-1">
+                  <Label className={styles.fieldLabel}>
+                    Locality <span className={styles.requiredMark}>*</span>
                   </Label>
                   <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => changePhone(e.target.value)}
-                    placeholder="01XXXXXXXXX"
+                    maxLength={100}
+                    autoComplete="address-level3"
+                    value={locality}
+                    onChange={(e) => changeLocality(e.target.value)}
+                    placeholder="e.g. Motijheel"
                     className={`${styles.fieldInput} ${styles.fieldInputPlaceholder}`}
                     required
                   />
@@ -242,10 +280,12 @@ export function AuthPageBody({
 }
 
 export function ProfilePageBody({
+  address,
   bookings,
   displayName,
   isLoggedIn,
 }: {
+  address: ProfileAddress | null;
   bookings: Booking[];
   displayName: string | undefined;
   isLoggedIn: boolean;
@@ -255,26 +295,27 @@ export function ProfilePageBody({
     <div className="bg-white text-black font-sans">
       <CleanNavbar isLoggedIn={isLoggedIn} />
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-10">
-      <Label className="text-4xl font-extrabold tracking-tight text-black font-bricolage">
-        Profile
-      </Label>
-      <Label className="text-gray-500 text-sm font-medium">
-        Welcome<b className="text-[#ff206e]">{displayName}</b>
-      </Label>
-      <Button
-        onClick={() => {
-          router.refresh();
-          supabase.auth.signOut();
-          router.refresh();
-        }}
-        className="bg-[#ff206e] hover:bg-[#d41b5b] text-white font-bold rounded-xl transition shadow-md active:scale-95"
-      >
-        Sign Out
-      </Button>
-      <section className="space-y-4" id="bookings">
-        <h2 className="text-2xl font-bold">My bookings</h2>
-        <BookingList bookings={bookings} />
-      </section>
+        <Label className="text-4xl font-extrabold tracking-tight text-black font-bricolage">
+          Profile
+        </Label>
+        <Label className="text-gray-500 text-sm font-medium">
+          Welcome<b className="text-[#ff206e]">{displayName}</b>
+        </Label>
+        <Button
+          onClick={() => {
+            router.refresh();
+            supabase.auth.signOut();
+            router.refresh();
+          }}
+          className="bg-[#ff206e] hover:bg-[#d41b5b] text-white font-bold rounded-xl transition shadow-md active:scale-95"
+        >
+          Sign Out
+        </Button>
+        <ProfileAddressForm initialAddress={address} />
+        <section className="space-y-4" id="bookings">
+          <h2 className="text-2xl font-bold">My bookings</h2>
+          <BookingList bookings={bookings} />
+        </section>
       </main>
     </div>
   );

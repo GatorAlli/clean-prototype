@@ -52,6 +52,8 @@ export const bookings = pgTable.withRLS("bookings", {
   customerId: uuid().notNull(),
   customerName: text().notNull(),
   customerEmail: text().notNull(),
+  customerAddress: text(),
+  customerLocality: text(),
 
   laundryName: text().notNull(),
   items: jsonb().$type<BookingItem[]>().notNull(),

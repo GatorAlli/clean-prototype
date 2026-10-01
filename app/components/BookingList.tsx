@@ -33,9 +33,12 @@ export default function BookingList({
           </div>
           <p className="mt-2 font-semibold">{booking.laundryName}</p>
           {showCustomer && (
-            <p className="mt-1 break-words text-sm text-gray-600">
-              {booking.customerName || "Customer"} · {booking.customerEmail}
-            </p>
+            <div className="mt-1 break-words text-sm text-gray-600">
+              <p>{booking.customerName || "Customer"} · {booking.customerEmail}</p>
+              <p><span className="font-medium">Address:</span> {booking.customerAddress
+                ? [booking.customerAddress, booking.customerLocality].filter(Boolean).join(", ")
+                : "Not provided"}</p>
+            </div>
           )}
           <ul className="my-4 space-y-1 text-sm text-gray-600">
             {booking.items.map((item) => (

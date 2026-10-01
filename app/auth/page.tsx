@@ -5,6 +5,7 @@ import { db } from "@/lib/drizzle/db";
 import { laundries, bookings } from "@/lib/drizzle/schema";
 import { createClient } from "@supabase/supabase-js";
 import { desc, eq } from "drizzle-orm";
+import { getProfileAddress } from "@/lib/profile-address";
 import { redirect } from "next/navigation";
 
 export default async function Page() {
@@ -82,7 +83,7 @@ export default async function Page() {
       {isAdmin ? (
         <AdminPage />
       ) : user ? (
-        <ProfilePageBody bookings={customerBookings} displayName={user.user_metadata.full_name} isLoggedIn={Boolean(user)} />
+        <ProfilePageBody address={getProfileAddress(user.user_metadata)} bookings={customerBookings} displayName={user.user_metadata.full_name} isLoggedIn={Boolean(user)} />
       ) : (
         <AuthPageBody onSaveAuthPhone={saveAuthPhone} isLoggedIn={Boolean(user)} />
       )}

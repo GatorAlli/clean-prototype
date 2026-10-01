@@ -1,3 +1,4 @@
+import { getProfileAddress } from "@/lib/profile-address";
 import { laundries, bookings } from "@/lib/drizzle/schema";
 import { generateServerClient } from "@/lib/supabase/server";
 import { and, desc, eq } from "drizzle-orm";
@@ -58,5 +59,5 @@ export default async function Page({
   const customerBookings = await sharedDb.select().from(bookings)
     .where(eq(bookings.customerId, user.id)).orderBy(desc(bookings.createdAt));
 
-  return <PageBody store={store} bookings={storeBookings} customerBookings={customerBookings} isLoggedIn={Boolean(user)} />;
+  return <PageBody address={getProfileAddress(user.user_metadata)} store={store} bookings={storeBookings} customerBookings={customerBookings} isLoggedIn={Boolean(user)} />;
 }

@@ -9,6 +9,8 @@ import { useState } from "react";
 import { updateStore } from "./actions";
 import Link from "next/link";
 import CleanNavbar from "@/app/components/CleanNavbar";
+import ProfileAddressForm from "@/app/components/ProfileAddressForm";
+import type { ProfileAddress } from "@/lib/profile-address";
 import BookingList from "@/app/components/BookingList";
 import type { Booking } from "@/lib/drizzle/schema";
 
@@ -24,7 +26,7 @@ type storeData = {
   }[];
 };
 
-export default function PageBody({ store, isLoggedIn, bookings, customerBookings }: { store: storeData; isLoggedIn: boolean; bookings: Booking[]; customerBookings: Booking[] }) {
+export default function PageBody({ address, store, isLoggedIn, bookings, customerBookings }: { address: ProfileAddress | null; store: storeData; isLoggedIn: boolean; bookings: Booking[]; customerBookings: Booking[] }) {
   const router = useRouter();
 
   const [name, setName] = useState(store.name);
@@ -227,6 +229,7 @@ export default function PageBody({ store, isLoggedIn, bookings, customerBookings
             </div>
           </div>
         </div>
+        <ProfileAddressForm initialAddress={address} />
         <section className="mt-10 space-y-4" id="bookings">
           <h2 className="text-2xl font-bold">Customer bookings</h2>
           <BookingList bookings={bookings} showCustomer canManage />
