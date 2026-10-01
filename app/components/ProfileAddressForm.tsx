@@ -15,8 +15,7 @@ export default function ProfileAddressForm({ initialAddress }: { initialAddress:
   return <section className="space-y-4">
     <h2 className="text-2xl font-bold">Delivery address</h2>
     <p className="text-sm text-gray-600">Orders use your saved address automatically. Your laundry can see the address saved with each order.</p>
-    <form className="max-w-lg space-y-4" onSubmit={async event => {
-      event.preventDefault();
+    <form className="max-w-lg space-y-4" action={async () => {
       setSaving(true);
       try {
         const result = await saveProfileAddress(address, locality);
