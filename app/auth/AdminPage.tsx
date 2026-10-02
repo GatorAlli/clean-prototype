@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import CleanNavbar from "@/app/components/CleanNavbar";
 
 export type Pricing = { apparelType: string; unitPrice: number };
 type PricingDraft = { apparelType: string; unitPrice: string };
@@ -71,7 +72,9 @@ export function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white px-6 py-10 pb-24 text-black font-sans md:px-12 md:py-12">
+    <div className="min-h-screen bg-white text-black font-sans">
+      <CleanNavbar isLoggedIn />
+      <main className="px-6 py-10 pb-24 md:px-12 md:pt-12">
       <Label className="mx-auto mb-10 block w-full max-w-4xl font-bricolage text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
         {" "}
         Site Admin Page{" "}
@@ -252,6 +255,7 @@ export function AdminPage() {
       >
         Sign Out
       </Button>
+      </main>
     </div>
   );
 }
