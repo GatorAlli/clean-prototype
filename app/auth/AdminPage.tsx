@@ -15,7 +15,8 @@ type PricingDraft = { apparelType: string; unitPrice: string };
 
 export function AdminPage() {
   const router = useRouter();
-  const inputStyling = "border-0 bg-slate-700 focus-visible:ring-0";
+  const inputStyling =
+    "w-full min-w-0 h-12 rounded-xl border border-gray-300 bg-white px-4 text-base text-black placeholder:text-gray-400 focus-visible:border-[#ff206e] focus-visible:ring-2 focus-visible:ring-[#ff206e]/20";
   const [laundryName, setLaundryName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [location, setLocation] = useState("");
@@ -70,52 +71,72 @@ export function AdminPage() {
   }
 
   return (
-    <div className="bg-black text-amber-50 p-4 flex flex-col gap-2">
-      <Label className="text-3xl"> Site Admin Page </Label>
+    <div className="min-h-screen bg-white px-6 py-10 pb-24 text-black font-sans md:px-12 md:py-12">
+      <Label className="mx-auto mb-10 block w-full max-w-4xl font-bricolage text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
+        {" "}
+        Site Admin Page{" "}
+      </Label>
 
-      <form onSubmit={handleSubmit} className="bg-slate-950 p-2 rounded-2xl">
+      <form
+        onSubmit={handleSubmit}
+        className="mx-auto grid w-full max-w-4xl grid-cols-1 items-start gap-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] md:grid-cols-2 md:gap-8 md:p-8"
+      >
         {/* Add a Turf Form */}
-        <Label className="text-2xl">Add a Laundry</Label>
+        <Label className="col-span-full block border-b border-gray-100 pb-4 font-bricolage text-2xl font-bold">
+          Add a Laundry
+        </Label>
 
-        <div>
-          <Label>Laundry Name</Label>
+        <div className="min-w-0 space-y-2">
+          <Label className="block font-bricolage text-base font-bold">
+            Laundry Name
+          </Label>
           <Input
             className={inputStyling}
             value={laundryName}
             onChange={(event) => setLaundryName(event.target.value)}
           />
         </div>
-        <div>
-          <Label>Owner&apos;s Email</Label>
+        <div className="min-w-0 space-y-2">
+          <Label className="block font-bricolage text-base font-bold">
+            Owner&apos;s Email
+          </Label>
           <Input
             className={inputStyling}
             value={ownerEmail}
             onChange={(event) => setOwnerEmail(event.target.value)}
           />
         </div>
-        <div>
-          <Label>Location (Area)</Label>
+        <div className="col-span-full min-w-0 space-y-2">
+          <Label className="block font-bricolage text-base font-bold">
+            Location (Area)
+          </Label>
           <Input
             className={inputStyling}
             value={location}
             onChange={(event) => setLocation(event.target.value)}
           />
         </div>
-        <div>
-          <Label>About</Label>
+        <div className="col-span-full min-w-0 space-y-2">
+          <Label className="block font-bricolage text-base font-bold">
+            About
+          </Label>
           <textarea
-            className="w-full rounded-md border-0 bg-slate-700 p-2 text-slate-100 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+            className="min-h-[180px] w-full resize-y rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-black shadow-sm transition-shadow focus:border-[#ff206e] focus:outline-none focus:ring-2 focus:ring-[#ff206e]/20"
             value={about}
             onChange={(event) => setAbout(event.target.value)}
           />
         </div>
-        <div>
-          <Label>Pricing</Label>
-          <ol>
+        <div className="min-w-0 space-y-4 rounded-2xl border border-gray-200 p-4 md:p-5">
+          <Label className="block border-b border-gray-100 pb-3 font-bricolage text-xl font-bold">
+            Pricing
+          </Label>
+          <ol className="space-y-4">
             {pricing.map((e, index) => (
-              <div key={index}>
-                <li className="flex gap-2">
-                  <Label>{index + 1}.</Label>
+              <div key={index} className="min-w-0">
+                <li className="grid min-w-0 grid-cols-[minmax(0,1fr)_44px] items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <Label className="col-span-full font-bricolage text-base font-bold">
+                    {index + 1}.
+                  </Label>
                   <Input
                     placeholder="Apparel Type"
                     value={pricing[index].apparelType}
@@ -128,7 +149,7 @@ export function AdminPage() {
                         );
                       });
                     }}
-                    className={inputStyling}
+                    className={`${inputStyling} col-span-full`}
                   />
                   <Input
                     type="number"
@@ -145,7 +166,7 @@ export function AdminPage() {
                         ),
                       );
                     }}
-                    className="border-slate-600 focus-visible:ring-0 w-1xl"
+                    className="h-12 w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 text-right font-mono text-base font-semibold text-black placeholder:text-gray-400 focus-visible:border-[#ff206e] focus-visible:ring-2 focus-visible:ring-[#ff206e]/20"
                     required
                   />
                   <Button
@@ -157,7 +178,7 @@ export function AdminPage() {
                         }),
                       );
                     }}
-                    className="text-2xl"
+                    className="h-12 w-11 rounded-xl border border-gray-300 bg-white p-0 text-xl font-bold text-gray-600 shadow-none transition-colors hover:bg-gray-100 hover:text-black"
                   >
                     -
                   </Button>
@@ -169,16 +190,18 @@ export function AdminPage() {
               onClick={() => {
                 setPricing(pricing.concat({ apparelType: "", unitPrice: "" }));
               }}
-              className="text-2xl"
+              className="h-12 w-full rounded-xl border border-gray-300 bg-white text-xl font-bold text-black shadow-none transition-colors hover:bg-gray-100"
             >
               +
             </Button>
           </ol>
         </div>
-        <div>
-          <Label>Images</Label>
+        <div className="min-w-0 space-y-4 rounded-2xl border border-gray-200 p-4 md:p-5">
+          <Label className="block border-b border-gray-100 pb-3 font-bricolage text-xl font-bold">
+            Images
+          </Label>
           {images?.map((e, i) => (
-            <div key={i} className="flex gap-2">
+            <div key={i} className="flex min-w-0 items-center gap-3">
               <Input
                 onChange={(event) => {
                   const selectedFile = event.currentTarget.files?.[0] ?? null;
@@ -190,14 +213,14 @@ export function AdminPage() {
                 }}
                 type="file"
                 accept="image/*"
-                className={inputStyling}
+                className="h-auto min-h-12 w-full min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:font-semibold file:text-black focus-visible:ring-2 focus-visible:ring-[#ff206e]/20"
               />
               <Button
                 type="button"
                 onClick={() => {
                   setImages((row) => row.filter((_, ind) => ind !== i));
                 }}
-                className="text-2xl"
+                className="h-12 w-11 shrink-0 rounded-xl border border-gray-300 bg-white p-0 text-xl font-bold text-gray-600 shadow-none transition-colors hover:bg-gray-100 hover:text-black"
               >
                 -
               </Button>
@@ -206,13 +229,18 @@ export function AdminPage() {
           <Button
             type="button"
             onClick={() => setImages((rows) => [...rows, null])}
-            className="text-2xl"
+            className="h-12 w-full rounded-xl border border-gray-300 bg-white text-xl font-bold text-black shadow-none transition-colors hover:bg-gray-100"
           >
             +
           </Button>
         </div>
 
-        <Button type="submit">Submit</Button>
+        <Button
+          type="submit"
+          className="col-span-full h-14 w-full rounded-xl bg-[#ff206e] px-8 text-lg font-bold text-white shadow-md transition hover:bg-[#d41b5b] active:scale-[0.99]"
+        >
+          Submit
+        </Button>
       </form>
       <Button
         onClick={() => {
@@ -220,7 +248,7 @@ export function AdminPage() {
           supabase.auth.signOut();
           router.refresh();
         }}
-        className="bg-gray-700"
+        className="mx-auto mt-6 flex h-12 w-full max-w-4xl rounded-xl border border-gray-300 bg-white text-base font-bold text-black shadow-none transition-colors hover:bg-gray-100"
       >
         Sign Out
       </Button>
